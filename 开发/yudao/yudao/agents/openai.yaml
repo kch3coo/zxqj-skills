@@ -1,0 +1,6 @@
+interface:
+  display_name: "yudao"
+  short_description: "Use for Yudao/芋道/若依项目的代码梳理、写方案、测试用例、Playwright 场景、联调排查、跨层修改与 codegen"
+  default_prompt: "Use $yudao for Yudao / 芋道 / ruoyi-vue-pro / 若依 style projects. First apply the required matching Superpowers workflow, then analyze code, write implementation plans, generate test cases, design Playwright scenarios, handle debugging and cross-layer changes, or apply codegen / CRUD scaffold rules under the global execution rules."
+policy:
+  allow_implicit_invocation: true

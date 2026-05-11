@@ -1,0 +1,4 @@
+interface:
+  display_name: "Lili Style"
+  short_description: "Write Chinese beginner-friendly technical course content"
+  default_prompt: "Write or revise this Chinese technical teaching content for beginners, following the course style rules and the anti-AI-tone constraints."

@@ -1,0 +1,7 @@
+interface:
+  display_name: "YouTube Style"
+  short_description: "面向小白的中文技术视频口播稿生成与改写技能"
+  default_prompt: "Use $youtube-style to write or rewrite a beginner-friendly Chinese technical video script in natural spoken paragraphs."
+
+policy:
+  allow_implicit_invocation: true
