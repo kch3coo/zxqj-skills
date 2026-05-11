@@ -1,0 +1,62 @@
+template_type: mysql-db-compare-upgrade-project
+project: Effy
+description: Effy example adapter for mysql-db-compare-upgrade.
+project_root_markers:
+  - .git
+db_compare_repo_candidates:
+  - ../db-compare
+compare_config_file: script/db-compare/effy-system-db-compare.yml
+generated_dir: script/db-compare/generated
+backup_tar: script/db-compare/db-restore/prod-db.tar.zst
+source_db:
+  host: localhost
+  port: 3307
+  username: root
+  password: Huawei@123
+  database: effy-sys-prod-db
+  access:
+    kind: docker_exec
+    container: effy-mysql-prod-restore
+target_db:
+  host: localhost
+  port: 3306
+  username: root
+  password: Huawei@123
+  database: effy-sys-db
+  access:
+    kind: docker_exec
+    container: effy-mysql
+runtime_compare:
+  output_file: script/db-compare/generated/effy-system-db-compare.runtime.yml
+  append_specified_primary_keys:
+    - devflow_project_code(github_owner,github_repo)
+sql_validation_rules:
+  forbidden_substrings:
+    - __parent_
+prepare_steps:
+  target:
+    - type: docker_compose
+      file: script/db-compare/db-restore/rds-restore-compose.yml
+      args:
+        - down
+        - -v
+        - --remove-orphans
+      allow_failure: true
+    - type: command
+      argv:
+        - bash
+        - script/db-compare/db-restore/restore-effy-prod-backup.sh
+        - "{backup_tar}"
+  source:
+    - type: docker_compose
+      file: script/docker/docker-compose.yml
+      args:
+        - down
+        - -v
+        - --remove-orphans
+    - type: docker_compose
+      file: script/docker/docker-compose.yml
+      args:
+        - up
+        - -d
+        - mysql

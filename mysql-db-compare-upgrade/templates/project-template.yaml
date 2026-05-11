@@ -1,0 +1,57 @@
+template_type: mysql-db-compare-upgrade-project
+description: Reference template for project-specific defaults and DB preparation steps.
+project_root_markers:
+  - .git
+db_compare_repo_candidates:
+  - ../db-compare
+compare_config_file: script/db-compare/project-db-compare.yml
+generated_dir: script/db-compare/generated
+backup_tar: script/db-compare/db-restore/prod-db.tar.zst
+source_db:
+  host: localhost
+  port: 3306
+  username: root
+  password: Huawei@123
+  database: source-db
+  access:
+    kind: mysql_cli
+target_db:
+  host: localhost
+  port: 3307
+  username: root
+  password: Huawei@123
+  database: target-db
+  access:
+    kind: mysql_cli
+runtime_compare:
+  output_file: script/db-compare/generated/project-db-compare.runtime.yml
+  append_specified_primary_keys: []
+sql_validation_rules:
+  forbidden_substrings: []
+prepare_steps:
+  target:
+    - type: docker_compose
+      file: script/db-compare/db-restore/restore-compose.yml
+      args:
+        - down
+        - -v
+        - --remove-orphans
+      allow_failure: true
+    - type: command
+      argv:
+        - bash
+        - script/db-compare/db-restore/restore-project-backup.sh
+        - "{backup_tar}"
+  source:
+    - type: docker_compose
+      file: script/docker/docker-compose.yml
+      args:
+        - down
+        - -v
+        - --remove-orphans
+    - type: docker_compose
+      file: script/docker/docker-compose.yml
+      args:
+        - up
+        - -d
+        - mysql
