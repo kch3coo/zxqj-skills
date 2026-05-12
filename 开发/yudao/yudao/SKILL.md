@@ -195,9 +195,17 @@ description: Use when working on Yudao, 芋道, ruoyi-vue-pro, or 若依风格 p
 
 可使用通用只读脚本：
 
+- macOS / zsh：`scripts/scan-return-codes.zsh`
 - `scripts/scan-return-codes.ps1`
 
-示例：
+macOS / zsh 示例：
+
+```zsh
+zsh <yudao-skill>/scripts/scan-return-codes.zsh -Root <backend-root>
+zsh <yudao-skill>/scripts/scan-return-codes.zsh -Root <backend-root> -Prefix 1_061_300
+```
+
+Windows / PowerShell 示例：
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File <yudao-skill>/scripts/scan-return-codes.ps1 -Root <backend-root>
