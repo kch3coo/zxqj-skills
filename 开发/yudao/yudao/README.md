@@ -35,6 +35,7 @@
   - [test-case-template.md](references/test-case-template.md)
   - [codegen-workflow.md](references/codegen-workflow.md)
 - 通用工具：
+  - [scan-return-codes.zsh](scripts/scan-return-codes.zsh)
   - [scan-return-codes.ps1](scripts/scan-return-codes.ps1)
 
 ## 任务路由
@@ -100,6 +101,15 @@
 ### 5. ReturnCode 查重
 
 新增错误码前，先使用通用只读脚本扫描：
+
+macOS / zsh：
+
+```zsh
+zsh <yudao-skill>/scripts/scan-return-codes.zsh -Root <backend-root>
+zsh <yudao-skill>/scripts/scan-return-codes.zsh -Root <backend-root> -Prefix 1_061_300
+```
+
+Windows / PowerShell：
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File <yudao-skill>/scripts/scan-return-codes.ps1 -Root <backend-root>
