@@ -24,6 +24,7 @@ description: Use when working on Yudao, 芋道, ruoyi-vue-pro, or 若依风格 p
 | 字段、状态、主子表、权限、字典、导出等联动修改 | `references/layering-and-checklists.md` |
 | 新增或调整 ReturnCode / ErrorCode | `references/return-code-workflow.md` |
 | 准备汇报完成、选择验证命令 | `references/verification-policy.md` |
+| 本地启动 / 重启项目、自动错开前后端端口、启动数据库依赖、重置 MySQL volume | 使用 `yudao-start` skill，不在 `$yudao` 里展开启动流程 |
 
 如果任务命中多个类型，优先读取直接相关的 1 到 2 个 reference，避免把全部规则一次性加载进上下文。
 

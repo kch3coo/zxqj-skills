@@ -10,5 +10,14 @@
 
 当前包含：
 
-- `effy-release-deploy`
-- `mysql-db-compare-upgrade`
+- 开发
+  - `effy-release-deploy`
+  - `mysql-db-compare-upgrade`
+- 运营
+  - `lili-style`
+  - `youtube-style`
+  - `youtube-transcript`
+- 通用
+  - `frontend-slides`
+  - `frontend-slide-remotion`
+  - `remotion`

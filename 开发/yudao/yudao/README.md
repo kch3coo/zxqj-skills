@@ -35,6 +35,7 @@
 - 长流程、模板、检查清单、脚本说明放 `references/`。
 - 可重复执行的确定性动作放 `scripts/`。
 - 项目私有路径、业务规则、SQL 目录、黄金参考实现放项目 skill。
+- 本地启动、端口自动分配、Docker Compose 数据库依赖和 MySQL volume 重置流程放 `yudao-start` skill，不写进 `$yudao` 主流程。
 - 新增 reference 后，在 `SKILL.md` 的路由表和本 README 的文件结构中补入口。
 - 如果某个 reference 继续变大，优先按主题继续拆分。
 
