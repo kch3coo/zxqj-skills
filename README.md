@@ -13,6 +13,7 @@
 - 开发
   - `effy-release-deploy`
   - `mysql-db-compare-upgrade`
+  - `yudao-port-isolation`
 - 运营
   - `lili-style`
   - `youtube-style`
