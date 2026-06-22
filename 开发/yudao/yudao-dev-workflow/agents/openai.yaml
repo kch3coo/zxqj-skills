@@ -1,0 +1,4 @@
+interface:
+  display_name: "Yudao 开发工作流"
+  short_description: "独立执行 Yudao 开发工作流，按规则 ID 处理前后端开发、前端固定模板、验收记录和防漂移检查"
+  default_prompt: "使用 $yudao-dev-workflow 完成一次 Yudao 项目开发任务的调研、切片、规则 ID 触发、前端固定实现、契约核对、验证证据、验收记录、防漂移检查和交付说明。"

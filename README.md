@@ -14,6 +14,10 @@
   - `effy-release-deploy`
   - `mysql-db-compare-upgrade`
   - `yudao-port-isolation`
+  - `yudao`
+    - `yudao`
+    - `yudao-start`
+    - `yudao-dev-workflow`
 - 运营
   - `lili-style`
   - `youtube-style`
