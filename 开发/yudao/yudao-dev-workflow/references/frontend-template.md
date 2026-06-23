@@ -364,6 +364,167 @@ const COLUMN_VIS_KEY = '模块名_页面名_主表_columns_visible'
 
 本节只说明 `FE-FK-001` 的代码模式。外表 ID 查询、筛选或表单选择提交值使用 ID，用户界面显示名称、编号、单号、编码或组合字段。
 
+优先复用项目已有分页远程下拉组件；没有现成组件时，当前切片内的自定义 `el-select remote` 必须实现滚动到底继续加载下一页，不能只请求第一页后停止。
+
+项目缺少统一分页远程下拉组件时，先新增或等价实现一个通用组件，再在业务页面复用。组件模板：
+
+```vue
+<template>
+  <el-select
+    :model-value="modelValue"
+    filterable
+    remote
+    :multiple="multiple"
+    :clearable="clearable"
+    :disabled="disabled"
+    :remote-method="handleSearch"
+    :loading="loading"
+    :placeholder="placeholder"
+    :popper-class="dropdownClass"
+    @change="handleChange"
+    @visible-change="handleVisibleChange"
+  >
+    <el-option
+      v-for="item in options"
+      :key="String(item[valueKey])"
+      :label="String(item[labelKey] ?? '')"
+      :value="item[valueKey]"
+    />
+    <el-option v-if="loadingMore || hasMore" value="__load_more__" disabled label="下滑加载更多" />
+  </el-select>
+</template>
+
+<script setup lang="ts">
+type SelectValue = string | number | boolean
+type OptionRecord = Record<string, any>
+type PageResult = { list?: OptionRecord[]; total?: number; hasMore?: boolean }
+
+const props = withDefaults(defineProps<{
+  modelValue?: SelectValue | SelectValue[] | null
+  fetchPage: (params: { keyword: string; pageNo: number; pageSize: number }) => Promise<PageResult>
+  fetchSelected?: (value: SelectValue) => Promise<OptionRecord | undefined>
+  pageSize?: number
+  valueKey?: string
+  labelKey?: string
+  placeholder?: string
+  multiple?: boolean
+  clearable?: boolean
+  disabled?: boolean
+}>(), {
+  pageSize: 20,
+  valueKey: 'id',
+  labelKey: 'name',
+  placeholder: '请选择',
+  multiple: false,
+  clearable: true,
+  disabled: false
+})
+
+const emit = defineEmits(['update:modelValue', 'change', 'selected'])
+const uid = Math.random().toString(36).slice(2)
+const dropdownClass = `paged-remote-select-${uid}`
+const options = ref<OptionRecord[]>([])
+const keyword = ref('')
+const pageNo = ref(0)
+const total = ref(0)
+const hasTotal = ref(false)
+const hasMoreOverride = ref<boolean>()
+const lastPageCount = ref(0)
+const loading = ref(false)
+const loadingMore = ref(false)
+let scrollWrap: HTMLElement | undefined
+
+const hasMore = computed(() => {
+  if (hasMoreOverride.value !== undefined) return hasMoreOverride.value
+  if (hasTotal.value) return options.value.length < total.value
+  return pageNo.value > 0 && lastPageCount.value >= props.pageSize
+})
+
+const mergeOptions = (list: OptionRecord[], reset: boolean) => {
+  const map = new Map<SelectValue, OptionRecord>()
+  if (!reset) options.value.forEach((item) => map.set(item[props.valueKey], item))
+  list.forEach((item) => map.set(item[props.valueKey], item))
+  options.value = Array.from(map.values())
+}
+
+const loadPage = async (reset = false) => {
+  if (!reset && (!hasMore.value || loading.value || loadingMore.value)) return
+  const nextPageNo = reset ? 1 : pageNo.value + 1
+  loading.value = reset
+  loadingMore.value = !reset
+  try {
+    const data = await props.fetchPage({ keyword: keyword.value, pageNo: nextPageNo, pageSize: props.pageSize })
+    const list = data.list || []
+    mergeOptions(list, reset)
+    pageNo.value = nextPageNo
+    lastPageCount.value = list.length
+    hasTotal.value = typeof data.total === 'number'
+    total.value = data.total ?? options.value.length + list.length
+    hasMoreOverride.value = data.hasMore
+  } finally {
+    loading.value = false
+    loadingMore.value = false
+  }
+}
+
+const handleSearch = async (value?: string) => {
+  keyword.value = String(value || '').trim()
+  options.value = []
+  pageNo.value = 0
+  total.value = 0
+  hasTotal.value = false
+  hasMoreOverride.value = undefined
+  lastPageCount.value = 0
+  await loadPage(true)
+}
+
+const handleChange = (value: any) => {
+  emit('update:modelValue', value)
+  emit('change', value)
+  emit('selected', Array.isArray(value)
+    ? options.value.filter((item) => value.includes(item[props.valueKey]))
+    : options.value.find((item) => item[props.valueKey] === value))
+}
+
+const handleScroll = (event: Event) => {
+  const el = event.target as HTMLElement
+  if (el.scrollTop + el.clientHeight >= el.scrollHeight - 12) loadPage(false)
+}
+
+const handleVisibleChange = (visible: boolean) => {
+  if (!visible) {
+    scrollWrap?.removeEventListener('scroll', handleScroll)
+    scrollWrap = undefined
+    return
+  }
+  if (options.value.length === 0) loadPage(true)
+  nextTick(() => {
+    scrollWrap = document.querySelector(`.${dropdownClass} .el-select-dropdown__wrap`) as HTMLElement | undefined
+    scrollWrap?.addEventListener('scroll', handleScroll)
+  })
+}
+
+const ensureSelectedOption = async () => {
+  if (!props.fetchSelected) return
+  const values = Array.isArray(props.modelValue) ? props.modelValue : [props.modelValue]
+  const missingValues = values.filter(
+    (value): value is SelectValue =>
+      value !== undefined &&
+      value !== null &&
+      !options.value.some((item) => item[props.valueKey] === value)
+  )
+  if (missingValues.length === 0) return
+  const selectedOptions = await Promise.all(missingValues.map((value) => props.fetchSelected!(value)))
+  mergeOptions(selectedOptions.filter((item): item is OptionRecord => Boolean(item)), false)
+}
+
+watch(() => props.modelValue, ensureSelectedOption, { immediate: true })
+onBeforeUnmount(() => scrollWrap?.removeEventListener('scroll', handleScroll))
+</script>
+```
+
+业务页面使用示例：
+
 ```vue
 <el-select
   v-model="queryParams.supplierId"
@@ -387,19 +548,32 @@ const COLUMN_VIS_KEY = '模块名_页面名_主表_columns_visible'
 ```ts
 const supplierOptions = ref<Array<{ id: number; name: string; code?: string }>>([])
 const supplierLoading = ref(false)
+const supplierPageNo = ref(0)
+const supplierHasMore = ref(true)
+const supplierKeyword = ref('')
 
-const remoteSearchSupplier = async (keyword?: string) => {
+const loadSupplierPage = async (keyword = supplierKeyword.value, reset = false) => {
+  if (!reset && (!supplierHasMore.value || supplierLoading.value)) return
+  const pageNo = reset ? 1 : supplierPageNo.value + 1
   supplierLoading.value = true
   try {
     const data = await SupplierApi.getSupplierPage({
-      pageNo: 1,
+      pageNo,
       pageSize: 20,
       name: keyword || undefined
     })
-    supplierOptions.value = data.list || []
+    const list = data.list || []
+    supplierOptions.value = reset ? list : [...supplierOptions.value, ...list]
+    supplierPageNo.value = pageNo
+    supplierKeyword.value = keyword
+    supplierHasMore.value = data.total ? supplierOptions.value.length < data.total : list.length >= 20
   } finally {
     supplierLoading.value = false
   }
+}
+
+const remoteSearchSupplier = async (keyword?: string) => {
+  await loadSupplierPage(keyword || '', true)
 }
 ```
 
@@ -409,6 +583,8 @@ const remoteSearchSupplier = async (keyword?: string) => {
 - 回显文本仍显示名称、编号、单号或编码，不显示裸 ID。
 - 如果接口只返回 ID，先补接口或换接口，不交付显示 ID 的下拉。
 - 默认候选分页小于 20 时提升到 20；已有业务理由使用大于 20 或全量加载时保留原意图，不强行改小。
+- 候选可能超过首屏分页时，滚动到底必须继续调用下一页；项目有统一分页远程下拉组件时优先复用组件，不为单个业务下拉复制一套分页逻辑。
+- 使用裸 `el-select remote` 时，需要在下拉面板滚动接近底部时调用 `loadSupplierPage(supplierKeyword.value, false)`；不要只实现 `remote-method` 的第一页搜索。
 
 ## 金额和时间排序模式
 
