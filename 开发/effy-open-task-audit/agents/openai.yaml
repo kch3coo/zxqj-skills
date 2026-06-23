@@ -1,0 +1,4 @@
+interface:
+  display_name: "Effy 未完成任务巡检"
+  short_description: "生成可批注 HTML，检查并按确认更新 Effy 未完成任务时间"
+  default_prompt: "Use $effy-open-task-audit to review unfinished Effy tasks and generate an annotation-friendly HTML."

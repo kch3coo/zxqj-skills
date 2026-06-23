@@ -1,0 +1,4 @@
+interface:
+  display_name: "Effy Devflow Create"
+  short_description: "从需求文档批量创建 Effy Story/Task"
+  default_prompt: "Use $effy-devflow-create to import a Markdown Story/Task breakdown into Effy Devflow."
