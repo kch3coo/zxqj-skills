@@ -1,6 +1,6 @@
 interface:
   display_name: "Yudao Port Isolation"
-  short_description: "Avoid local Yudao multi-system port conflicts"
-  default_prompt: "Use $yudao-port-isolation to adjust this Yudao-style project so its Docker services, backend, and frontend avoid existing local port conflicts."
+  short_description: "Avoid local Yudao multi-system Docker and app port conflicts"
+  default_prompt: "Use $yudao-port-isolation to adjust this Yudao-style project so its Docker services, backend, frontend, mobile app, and gateway configs avoid local port conflicts."
 policy:
   allow_implicit_invocation: true

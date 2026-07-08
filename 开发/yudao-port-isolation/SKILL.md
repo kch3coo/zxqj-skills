@@ -1,33 +1,49 @@
 ---
 name: yudao-port-isolation
-description: Prepare a local Yudao/ruoyi-vue-pro style multi-service project to run beside other already-running systems by detecting port conflicts and editing only local development configuration. Use when a user wants to run another system that may conflict on Docker MySQL, Docker Redis, backend server ports, frontend dev-server ports, or frontend-to-backend API endpoints, especially projects with docker-compose files, application-local.yaml/yml, Vite env files, or similar local config. Do not start the system or commit changes unless the user explicitly asks for a commit.
+description: Use when a local Yudao/ruoyi-vue-pro style project must run beside other systems and may conflict on Docker MySQL, Redis, EMQX/MQTT, Adminer, simulators, backend server ports, frontend dev-server ports, or API base URLs.
 ---
 
 # Yudao Port Isolation
 
 ## Overview
 
-Modify a project's local development ports so it can run alongside other systems on the same machine. Prefer targeted edits to Docker Compose, backend local profile config, and frontend local env/config files; do not start services.
+Modify local development ports so one or more Yudao-style systems can run on the same machine. Prefer targeted edits to the actual Docker Compose file the user will run, backend local profile config, frontend/mobile local env files, and gateway/simulator local config. Do not start services unless the user explicitly asks.
 
 ## Workflow
 
-### 1. Locate Config
+### 1. Confirm the Actual Target Path
+
+If the user provides a command, path, or error log with `docker compose -f <file>`, treat that compose file as the primary target. Do not modify a same-named project elsewhere unless the user confirms it is the one they run.
+
+When multiple copies of a project exist, list the candidates and choose only from evidence:
+
+- Explicit user path or command.
+- Current working directory or opened repo.
+- Matching backend path such as `{project}-backend\script\docker\docker-compose.yml`.
+- Recent failure path in Docker output.
+
+Before editing, state the exact compose path you will modify. If the actual path is unknown and multiple candidates exist, ask for the path instead of guessing.
+
+### 2. Locate Config
 
 From the project root, find likely files:
 
 ```powershell
-rg --files -g "*docker-compose*" -g "application-local.y*ml" -g "application*.y*ml" -g ".env*" -g "vite.config.*" -g "package.json"
+rg --files -g "*docker-compose*" -g "application-local.y*ml" -g "application*.y*ml" -g ".env*" -g "vite.config.*" -g "package.json" -g "pubspec.yaml"
 ```
 
 Open only the most relevant files first:
 
-- Docker Compose under backend script/docker, deploy, or sql/tools directories.
+- Primary Docker Compose: usually `{backend}\script\docker\docker-compose.yml`.
+- Secondary DB-tool Compose: usually `{backend}\sql\tools\docker-compose.yaml`.
 - Backend `application-local.yaml` or `application-local.yml`.
 - Frontend `.env.local`, `.env.development`, `.env.dev`, `vite.config.ts/js`, and `package.json`.
+- Mobile/uniapp/Flutter env files such as `env/.env.development` or root `.env`.
+- IoT gateway, simulator, or plugin local YAML files that reference Redis, MQTT, EMQX, or the main backend URL.
 
 Prefer local config files over shared dev/prod files. If there is no local file, create or modify the least risky local override that the project already supports.
 
-### 2. Detect Existing Conflicts
+### 3. Detect Existing Conflicts
 
 Check ports already in use before choosing replacements:
 
@@ -39,31 +55,43 @@ Get-NetTCPConnection -State Listen | Select-Object LocalAddress,LocalPort,Owning
 For a narrower check, query likely ports:
 
 ```powershell
-Get-NetTCPConnection -State Listen -LocalPort 3306,3307,3310,3311,6379,6380,6381,48080,48081,8080,8081,8090,5173,5174,5175 -ErrorAction SilentlyContinue
+Get-NetTCPConnection -State Listen -LocalPort 3306,3310,3311,3312,3313,3314,6379,6380,6381,6382,6383,6384,48080,48081,48082,48083,48084,5173,5174,5175,5176,8080,8081,8083,8084,8085,8086,8087,8883,8884,18080,18081,18082,18083,18084,18085,38384,38385,38386,38387 -ErrorAction SilentlyContinue
 ```
 
 Also inspect the target project's current declared ports:
 
 ```powershell
-rg -n "3306|6379|server:\s*$|port:|datasource|redis|VITE_PORT|VITE_BASE_URL|VITE_API|proxy|target|localhost|127\.0\.0\.1"
+rg -n "3306|6379|1883|8083|8883|18083|18080|38384|server:\s*$|port:|datasource|redis|emqx|mqtt|simulator|VITE_PORT|VITE_BASE_URL|VITE_API|DEV_SERVER_IP|DEV_SERVER_PORT|PROD_SERVER_PORT|proxy|target|localhost|127\.0\.0\.1|10\.0\.2\.2"
 ```
 
-### 3. Choose a Port Set
+### 4. Build a Port Matrix
 
-Pick a coherent unused set for the target system. Keep container-internal ports unchanged and only change host mappings and local clients.
+For multiple systems, create a compact matrix before editing:
 
-Common default:
+```text
+System      MySQL  Redis  Backend  Frontend  Adminer  EMQX TCP/WS/Dashboard  Simulator
+warden      3310   6380   48081    5174      38384    1883/8083/18083        18080
+yian        3311   6381   48084    5175      38387    1885/8087/18085        18082
+checknm     3312   6382   48082    5175      38385    1884/8085/18084        -
+effy        3313   6383   48083    5176      38386    -                      -
+```
+
+Adapt the names and values to occupied ports, but keep each system's ports grouped and predictable. Keep container-internal ports unchanged; change host mappings and local clients.
+
+Common single-system default:
 
 ```text
 MySQL host port: 3310 -> container 3306
 Redis host port: 6380 -> container 6379
 Backend: 48081 or 8090
 Frontend: 5174
+Adminer host port: 38384 -> container 8080
+EMQX host ports: 1883, 8083, 8084, 8883, 18083 -> same container ports
 ```
 
 If those are occupied, increment predictably: MySQL `3311`, Redis `6381`, backend `48082`, frontend `5175`.
 
-### 4. Edit Docker Compose
+### 5. Edit Docker Compose
 
 In the target project's Docker Compose file, change host ports only:
 
@@ -79,9 +107,14 @@ services:
 
 Do not change the right side unless the container itself is intentionally reconfigured.
 
-If Compose also includes Adminer, EMQX, MQTT, app containers, simulators, or other services with exposed host ports, check and adjust those too when they conflict.
+Scan every `ports:` block, not just MySQL and Redis. Change host ports for services such as:
 
-### 5. Edit Backend Local Config
+- `adminer`: `38384:8080`, then increment for other systems.
+- `emqx` or MQTT: change host `1883`, `8083`, `8084`, `8883`, and `18083` as a group.
+- `server` app containers: align both host and container mapping with the backend `server.port`, or pass `--server.port=<port>` if the container uses `ARGS`.
+- simulators: change host ports such as `18080:18080` when multiple systems expose the same simulator.
+
+### 6. Edit Backend Local Config
 
 In `application-local.yaml` or `application-local.yml`, update:
 
@@ -110,7 +143,7 @@ Adapt the exact property names to the project:
 - `spring.data.redis.*` for newer Spring Boot.
 - `spring.redis.*` for older Spring Boot.
 
-Confirm the backend actually activates the local profile, usually in `application.yaml`:
+Confirm the backend activates the local profile, usually in `application.yaml`:
 
 ```yaml
 spring:
@@ -120,7 +153,19 @@ spring:
 
 If not, update the IDE/run arguments only when the project stores them in versioned or local run configuration files; otherwise tell the user what argument to use, such as `--spring.profiles.active=local`.
 
-### 6. Edit Frontend Local Config
+When the Docker Compose includes a backend `server` service, update the Compose runtime too:
+
+```yaml
+ports:
+  - "48082:48082"
+environment:
+  ARGS:
+    --server.port=48082
+```
+
+Keep container-to-container datasource and Redis URLs pointed at service names and internal ports, such as `mysql:3306` and `redis:6379`. Host port changes are for host-to-container access.
+
+### 7. Edit Frontend, Mobile, and Gateway Local Config
 
 For Vite projects, prefer `.env.local` or the env file used by the `dev` script. Update both the frontend dev-server port and the backend API base:
 
@@ -144,17 +189,42 @@ server: {
 
 If `vite.config` already reads `env.VITE_PORT`, only setting `VITE_PORT` is enough.
 
-### 7. Validate Without Starting
+For mobile or uniapp projects, update development-only env files:
+
+```env
+DEV_SERVER_IP=127.0.0.1
+DEV_SERVER_PORT=48082
+VITE_BASE_URL=http://localhost:48082
+```
+
+Do not change production variables unless the user explicitly asks.
+
+For IoT gateway or simulator config, align references to:
+
+- Main backend API URL, for example `http://127.0.0.1:48084`.
+- Redis host port when it runs on the host.
+- MQTT/EMQX host ports when the gateway connects through the host network.
+
+### 8. Validate Without Starting
 
 Do not run `docker compose up`, backend applications, or frontend dev servers. Validation should be static:
 
 ```powershell
 docker compose -f <compose-file> config
+docker compose -f <compose-file> config | Select-String -Pattern 'published: "6381"|published: "3311"'
 git diff -- <edited-files>
 git status --short -- <edited-files>
 ```
 
-Use `docker compose config` only to validate Compose syntax and port mappings. A warning that Compose `version` is obsolete is not a blocker.
+Use `docker compose config` to validate syntax and rendered port mappings. A warning that Compose `version` is obsolete is not a blocker.
+
+If a previous `docker compose up` failed with "port is already allocated", check for a leftover created container:
+
+```powershell
+docker ps -a --filter name=<container-name> --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+```
+
+If it exists, tell the user to recreate the service with `--force-recreate` or remove the created container. Do not remove containers automatically unless the user asks.
 
 ## Git Safety
 
