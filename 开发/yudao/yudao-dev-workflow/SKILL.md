@@ -1,6 +1,6 @@
 ---
 name: yudao-dev-workflow
-description: 用于 Codex 独立处理 Yudao/ruoyi-vue-pro 企业后台开发任务：答疑、调研、代码实现、缺陷修复、前后端契约、Controller、Service、Mapper、Vue 页面、列表页、表格可拖动框线、主表列显示、外表 ID 可搜索分页下拉、分页下拉不显示裸 ID、操作列完整可点击且不固定右侧、金额和时间列排序、北京时间固定、移动端适配、响应式日期范围、SQL/DDL、权限、字典、状态流、主子表、导入导出、错误码、用户提示、验收规则、验证证据、评审包、开发文档和技能规则防漂移。
+description: 用于 Yudao/芋道/ruoyi-vue-pro 企业后台的开发答疑、调研、实现、缺陷修复、评审与交付验证；适用于前后端联动、SQL 本体与历史数据迁移、权限字典及业务流程调整。
 ---
 
 # Yudao 开发工作流
@@ -48,6 +48,7 @@ description: 用于 Codex 独立处理 Yudao/ruoyi-vue-pro 企业后台开发任
 ## 按需读取
 
 - 需要规则正文、硬边界、漏项或验收失败定义时，读 `references/rule-registry.md`。
+- 涉及 SQL 本体（结构、初始化数据、菜单、测试数据）、历史数据迁移或版本目录时，读 `references/rule-registry.md` 的 `SQL-001`。
 - 需要调研、开发、修复、验证或交付时，读 `references/workflow.md`。
 - 需要判断触发哪些规则 ID 时，读 `references/gates.md`。
 - 涉及前端页面、列表、表格、弹窗、表单或按钮时，读 `references/frontend-template.md`。
